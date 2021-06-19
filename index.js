@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
 const ShortURL = require("./models/shortUrl");
+require("dotenv").config();
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: false }));
@@ -51,8 +52,8 @@ mongoose.connect(process.env.MONGO_URI, {
 
 mongoose.connection.on("open", async () => {
   // Saving 2 URLs for testing purpose
-  await ShortURL.create({ full: "http://iamrajatsingh.com", short: "rajjo" });
-  await ShortURL.create({ full: "http://google.com", short: "goo" });
+  // await ShortURL.create({ full: "http://iamrajatsingh.com", short: "rajat" });
+  // await ShortURL.create({ full: "http://google.com", short: "goog" });
 
   app.listen(process.env.PORT, () => {
     console.log(`Server started at ${process.env.PORT}`);
