@@ -1,61 +1,87 @@
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
-const ShortURL = require("./models/shortUrl");
+const bodyParser = require("body-parser");
 require("dotenv").config();
+const ShortURL = require("./models/shortUrl");
+const mongoConfig = require("./config/mongo");
 
-app.set("view engine", "ejs");
+const jsonParser = bodyParser.json();
+app.use(jsonParser);
 app.use(express.urlencoded({ extended: false }));
-
-app.get("/", async (req, res) => {
-  const allData = await ShortURL.find();
-  res.render("index", { shortUrls: allData });
+app.use(function (req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
+  next();
 });
 
-app.post("/short", async (req, res) => {
-  // Grab the fullUrl parameter from the req.body
-  const fullUrl = req.body.fullUrl;
-  console.log("URL requested: ", fullUrl);
-
-  // insert and wait for the record to be inserted using the model
-  const record = new ShortURL({
-    full: fullUrl,
+app.get("/", async (req, res) => {
+  res.send({
+    success: true,
+    message: "Rajat's Url Shortener service running successfully.",
   });
+});
 
-  await record.save();
+app.get("/api/shortid/get", async (req, res) => {
+  const allShortUrls = await ShortURL.find();
+  res.send({ success: true, data: allShortUrls || [] });
+});
 
-  res.redirect("/");
+app.post("/api/shortid/add", async (req, res) => {
+  try {
+    const full = req.body.full;
+    const short = req.body.short;
+    let doc = {
+      full: full,
+    };
+    if (short) {
+      doc["short"] = short;
+    }
+    const record = new ShortURL(doc);
+    await record.save();
+    res.send({
+      success: true,
+      message: "Added successfully.",
+      data: { record },
+    });
+  } catch (e) {
+    res.send({
+      success: false,
+      message: "Could not add.",
+    });
+  }
 });
 
 app.get("/:shortid", async (req, res) => {
-  // grab the :shortid param
   const shortid = req.params.shortid;
-
-  // perform the mongoose call to find the long URL
   const rec = await ShortURL.findOne({ short: shortid });
-
-  // if null, set status to 404 (res.sendStatus(404))
-  if (!rec) return res.sendStatus(404);
-
-  // if not null, increment the click count in database
+  if (!rec) {
+    res.send({
+      success: false,
+      data: null,
+      error: { message: "Url Not found, Please verify." },
+    });
+  }
   rec.clicks++;
   await rec.save();
-
-  // redirect the user to original link
   res.redirect(rec.full);
 });
-
-mongoose.connect(process.env.MONGO_URI, {
+app.get("/*", async (req, res) => {
+  res.send({
+    success: false,
+    message: "Resource not found.",
+  });
+});
+mongoose.connect(process.env.MONGO_URI || mongoConfig.production.uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
 mongoose.connection.on("open", async () => {
-  // Saving 2 URLs for testing purpose
-  // await ShortURL.create({ full: "http://iamrajatsingh.com", short: "rajat" });
-  // await ShortURL.create({ full: "http://google.com", short: "goog" });
-
-  app.listen(process.env.PORT, () => {
+  app.listen(process.env.PORT || 8001, () => {
     console.log(`Server started at ${process.env.PORT}`);
   });
 });
