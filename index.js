@@ -67,7 +67,12 @@ app.get("/:shortid", async (req, res) => {
   }
   rec.clicks++;
   await rec.save();
-  res.redirect(rec.full);
+  // res.redirect(rec.full);
+  res.send({
+    success: true,
+    message: "Url found.",
+    data: { ...rec._doc },
+  });
 });
 app.get("/*", async (req, res) => {
   res.send({
