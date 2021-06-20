@@ -65,9 +65,8 @@ app.get("/:shortid", async (req, res) => {
       error: { message: "Url Not found, Please verify." },
     });
   }
-  rec.clicks++;
+  rec._doc.clicks++;
   await rec.save();
-  // res.redirect(rec.full);
   res.send({
     success: true,
     message: "Url found.",
